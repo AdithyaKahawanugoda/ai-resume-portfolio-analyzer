@@ -9,6 +9,8 @@ import { InterviewQuestions } from "@/components/InterviewQuestions";
 
 interface AnalysisOutput {
   ats_score: number;
+  jd_match_score?: number;
+  jd_keywords_missing?: string[];
   skills_detected: string[];
   missing_skills: string[];
   improvements: string[];
@@ -69,8 +71,8 @@ export default async function ResultsPage({
       </header>
 
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-        {/* Top row: ATS score + breakdown + role fit */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Top row: ATS score + optional JD match + breakdown + role fit */}
+        <div className={`grid grid-cols-1 gap-4 ${analysis.jd_match_score != null ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
           {/* ATS Score card */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col items-center gap-4">
             <div className="w-full">
@@ -85,6 +87,40 @@ export default async function ResultsPage({
               </p>
             </div>
           </div>
+
+          {/* JD Match card — only when job description was provided */}
+          {analysis.jd_match_score != null && (
+            <div className="bg-slate-900 border border-indigo-500/20 rounded-2xl p-6 flex flex-col gap-4">
+              <div className="w-full">
+                <div className="flex items-center gap-2 mb-4">
+                  <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">JD Match</h2>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    vs posting
+                  </span>
+                </div>
+                <div className="flex justify-center">
+                  <ATSScore score={analysis.jd_match_score} />
+                </div>
+              </div>
+              {analysis.jd_keywords_missing && analysis.jd_keywords_missing.length > 0 && (
+                <div className="w-full pt-4 border-t border-slate-800">
+                  <p className="text-xs text-slate-500 mb-2">Missing from JD</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {analysis.jd_keywords_missing.slice(0, 6).map((kw, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded-full text-xs bg-red-500/10 text-red-400 border border-red-500/20">
+                        {kw}
+                      </span>
+                    ))}
+                    {analysis.jd_keywords_missing.length > 6 && (
+                      <span className="px-2 py-0.5 rounded-full text-xs text-slate-500">
+                        +{analysis.jd_keywords_missing.length - 6} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ATS Breakdown */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
