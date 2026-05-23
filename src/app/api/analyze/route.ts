@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { resumeId, jobRole } = body;
+    const { resumeId, jobRole, jobDescription } = body;
 
     if (!resumeId || !jobRole) {
       return Response.json(
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Resume not found" }, { status: 404 });
     }
 
-    const prompt = buildAnalysisPrompt(resume.rawText, jobRole);
+    const prompt = buildAnalysisPrompt(resume.rawText, jobRole, jobDescription || undefined);
 
     const message = await anthropic.messages.create({
       model: MODEL,
@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       data: {
         resumeId: resume.id,
         jobRole,
+        jobDescription: jobDescription?.trim() || null,
         aiOutput,
       },
     });
