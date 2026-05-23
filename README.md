@@ -24,6 +24,82 @@ A full-stack SaaS-style web app that analyzes resumes against a target job role 
 
 ---
 
+## Live Demo
+
+**Production URL:** https://resume-analyzer-eight-henna.vercel.app
+
+Deployed on Vercel (Washington D.C. / `iad1` region) with a Neon serverless PostgreSQL database (Sydney / `ap-southeast-2` region).
+
+---
+
+## Deployment
+
+### Infrastructure
+
+| Layer | Service |
+|-------|---------|
+| Hosting | Vercel (serverless, Edge Network CDN) |
+| Database | Neon serverless PostgreSQL (`ap-southeast-2.aws.neon.tech`) |
+| AI | Anthropic Claude API (`claude-sonnet-4-6`) |
+| ORM | Prisma 7 with `@prisma/adapter-pg` driver adapter |
+
+### How it works
+
+The `npm run build` script is:
+
+```json
+"build": "prisma migrate deploy && next build"
+```
+
+On every Vercel deployment, `prisma migrate deploy` runs first — it applies any pending migrations from `prisma/migrations/` to the Neon database before the Next.js build starts. This means schema changes are always in sync with the deployed code.
+
+### Environment variables
+
+Set these in the Vercel project dashboard (Settings → Environment Variables):
+
+| Variable | Description |
+|----------|-------------|
+| `POSTGRES_URL` | Neon pooled connection string (used by the app at runtime) |
+| `POSTGRES_URL_NON_POOLING` | Neon direct connection string (used by `prisma migrate deploy` at build time) |
+| `ANTHROPIC_API_KEY` | Anthropic API key |
+
+Neon provides both URLs when you create a database. The pooled URL goes through Neon's connection pooler (pgBouncer) — appropriate for serverless functions that open many short-lived connections. The non-pooling URL is a direct TCP connection, required for migrations which use advisory locks that don't work through a pooler.
+
+### Connection routing in code
+
+`prisma.config.ts` (migrations):
+```ts
+datasource: {
+  url: process.env["POSTGRES_URL_NON_POOLING"] ?? process.env["DATABASE_URL"],
+}
+```
+
+`src/lib/prisma.ts` (runtime):
+```ts
+const connectionString = process.env.POSTGRES_URL ?? process.env.DATABASE_URL!;
+const adapter = new PrismaPg({ connectionString });
+```
+
+`DATABASE_URL` is the fallback for local development.
+
+### Deploy from CLI
+
+```bash
+# One-time: link project and add env vars via Vercel dashboard, then pull locally
+vercel env pull .env.local
+
+# Deploy to production
+vercel --prod
+```
+
+### Local development against Neon
+
+After pulling env vars (`vercel env pull .env.local`), Next.js picks up `.env.local` automatically. You can develop locally against the Neon database without any local PostgreSQL installation.
+
+To run against a local PostgreSQL instead, set `DATABASE_URL` in `.env` (`.env.local` takes precedence so Neon vars won't interfere).
+
+---
+
 ## Getting Started
 
 ### 1. Prerequisites
