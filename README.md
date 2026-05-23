@@ -9,15 +9,18 @@ A full-stack SaaS-style web app that analyzes resumes against a target job role 
 ## Features
 
 - Upload a resume as **PDF or DOCX** — text is extracted server-side and stored in PostgreSQL
-- Select a **target job role** (Frontend, Backend, Full Stack, DevOps, etc.)
+- **Type any target role** — free-text input accepts any title ("Staff SRE", "Senior iOS Developer", etc.); popular roles available as one-click chips
+- Optionally **paste a job description** — Claude scores your resume against the exact keywords and requirements from the posting instead of generic role expectations
 - Claude analyzes the resume and returns structured JSON including:
   - ATS score (0–100) with a breakdown across 6 dimensions
+  - **JD match score** (when JD provided) — how closely your resume matches the specific posting
+  - **JD keywords missing** — terms from the job posting absent from your resume
   - Detected skills and missing skills for the selected role
   - Actionable improvement suggestions
   - Role-fit scores across 5 engineering tracks
   - 8–10 role-specific technical interview questions
   - A full ATS-optimized resume rewrite
-- Results are stored in PostgreSQL (JSONB) and served at a permanent URL — each resume can have multiple analyses for different roles
+- Results are stored in PostgreSQL (JSONB) and served at a permanent URL — each resume can have multiple analyses for different roles or job postings
 
 ---
 
@@ -93,17 +96,18 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ```
 resumes
-  id          cuid (PK)
-  filename    text
-  rawText     text
-  createdAt   timestamp
+  id              cuid (PK)
+  filename        text
+  rawText         text
+  createdAt       timestamp
 
 analysis_sessions
-  id          cuid (PK)
-  resumeId    FK → resumes.id
-  jobRole     text
-  aiOutput    jsonb        ← flexible; schema-free AI output
-  createdAt   timestamp
+  id              cuid (PK)
+  resumeId        FK → resumes.id
+  jobRole         text
+  jobDescription  text?        ← nullable; populated when JD is pasted
+  aiOutput        jsonb        ← flexible; schema-free AI output
+  createdAt       timestamp
 ```
 
 `aiOutput` is JSONB so future changes to the Claude output format (new fields, nested objects) require no migrations.
@@ -185,8 +189,8 @@ The prompt explicitly instructs: *"Return ONLY valid JSON. Do not include markdo
 
 The JSONB `aiOutput` column makes the schema forward-compatible. Ideas for future iterations:
 
-- **Job description comparison** — paste a JD and re-score against it
 - **GitHub portfolio analysis** — fetch repos and factor in commit history
-- **Multiple AI runs** — compare analyses across roles side-by-side
+- **Multiple AI runs** — compare analyses across roles or postings side-by-side
 - **Authentication** — add NextAuth to tie analyses to user accounts
 - **Export** — download the rewritten resume as a DOCX or PDF
+- **JD history** — re-run the same resume against multiple job postings and track score trends
