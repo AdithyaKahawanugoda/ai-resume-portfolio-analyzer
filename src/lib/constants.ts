@@ -1,4 +1,4 @@
-export const JOB_ROLES = [
+export const POPULAR_ROLES: string[] = [
   "Frontend Developer",
   "Backend Engineer",
   "Full Stack Developer",
@@ -9,6 +9,4 @@ export const JOB_ROLES = [
   "Cloud Architect",
   "Security Engineer",
   "Product Manager",
-] as const;
-
-export type JobRole = (typeof JOB_ROLES)[number];
+];

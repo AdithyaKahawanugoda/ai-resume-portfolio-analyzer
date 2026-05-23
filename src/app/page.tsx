@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { JOB_ROLES } from "@/lib/constants";
+import { POPULAR_ROLES } from "@/lib/constants";
 
 type Step = "upload" | "configure" | "analyzing";
 
@@ -13,7 +13,8 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [resumeId, setResumeId] = useState<string | null>(null);
-  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [roleInput, setRoleInput] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,14 +58,19 @@ export default function Home() {
   };
 
   const handleAnalyze = async () => {
-    if (!resumeId || !selectedRole) return;
+    const role = roleInput.trim();
+    if (!resumeId || !role) return;
     setStep("analyzing");
     setError(null);
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeId, jobRole: selectedRole }),
+        body: JSON.stringify({
+          resumeId,
+          jobRole: role,
+          jobDescription: jobDescription.trim() || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Analysis failed");
@@ -128,6 +134,7 @@ export default function Home() {
             ))}
           </div>
 
+          {/* Upload step */}
           {step === "upload" && (
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
               <div
@@ -190,26 +197,73 @@ export default function Home() {
             </div>
           )}
 
+          {/* Configure step */}
           {step === "configure" && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                <p className="text-xs text-emerald-400 font-medium">Resume uploaded successfully</p>
-              </div>
-              <h2 className="text-base font-semibold text-white mb-5">Select your target job role</h2>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <p className="text-xs text-emerald-400 font-medium">Resume uploaded successfully</p>
+                </div>
 
-              <div className="grid grid-cols-2 gap-2 mb-5">
-                {JOB_ROLES.map((role) => (
-                  <button key={role} onClick={() => setSelectedRole(role)} className={`px-3 py-2.5 rounded-xl text-sm text-left transition-all border ${
-                    selectedRole === role ? "bg-indigo-600/20 border-indigo-500 text-indigo-300" : "bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-300"
-                  }`}>
-                    {role}
-                  </button>
-                ))}
+                {/* Free-text role input */}
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  Target Role
+                </label>
+                <input
+                  type="text"
+                  value={roleInput}
+                  onChange={(e) => setRoleInput(e.target.value)}
+                  placeholder="e.g. Senior iOS Developer, Staff SRE, Data Engineer…"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-sm placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
+                />
+
+                {/* Popular role chips */}
+                <div className="mt-3">
+                  <p className="text-xs text-slate-500 mb-2">Popular roles</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {POPULAR_ROLES.map((role) => (
+                      <button
+                        key={role}
+                        onClick={() => setRoleInput(role)}
+                        className={`px-2.5 py-1 rounded-full text-xs transition-all border ${
+                          roleInput === role
+                            ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
+                            : "bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-300"
+                        }`}
+                      >
+                        {role}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Optional job description */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  Job Description
+                  <span className="ml-2 normal-case font-normal text-slate-500">optional — improves ATS accuracy</span>
+                </label>
+                <textarea
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  rows={5}
+                  placeholder="Paste the job posting here. Claude will score your resume against the exact keywords and requirements from this listing rather than generic role expectations."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-sm placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors resize-none leading-relaxed"
+                />
+                {jobDescription.trim() && (
+                  <p className="mt-1.5 text-xs text-indigo-400 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    JD-powered scoring enabled — results will include a match score against this posting
+                  </p>
+                )}
               </div>
 
               {error && (
-                <div className="mb-4 flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5">
+                <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5">
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -217,16 +271,17 @@ export default function Home() {
                 </div>
               )}
 
-              <button onClick={handleAnalyze} disabled={!selectedRole} className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors">
+              <button onClick={handleAnalyze} disabled={!roleInput.trim()} className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors">
                 Analyze with AI
               </button>
 
-              <button onClick={() => { setStep("upload"); setFile(null); setResumeId(null); }} className="mt-2 w-full py-2 text-xs text-slate-500 hover:text-slate-400 transition-colors">
+              <button onClick={() => { setStep("upload"); setFile(null); setResumeId(null); }} className="w-full py-2 text-xs text-slate-500 hover:text-slate-400 transition-colors">
                 ← Upload a different resume
               </button>
             </div>
           )}
 
+          {/* Analyzing step */}
           {step === "analyzing" && (
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 text-center">
               <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
@@ -238,8 +293,11 @@ export default function Home() {
               <h2 className="text-base font-semibold text-white mb-2">Analyzing your resume</h2>
               <p className="text-sm text-slate-400">
                 Claude is reviewing your resume for{" "}
-                <span className="text-indigo-300 font-medium">{selectedRole}</span>...
+                <span className="text-indigo-300 font-medium">{roleInput}</span>...
               </p>
+              {jobDescription.trim() && (
+                <p className="text-xs text-indigo-400 mt-1">Scoring against your job description</p>
+              )}
               <p className="text-xs text-slate-600 mt-3">This usually takes 10–20 seconds</p>
             </div>
           )}
