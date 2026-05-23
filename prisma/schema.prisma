@@ -24,11 +24,12 @@ model Resume {
 }
 
 model AnalysisSession {
-  id        String   @id @default(cuid())
-  resumeId  String
-  jobRole   String
-  aiOutput  Json
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  resumeId       String
+  jobRole        String
+  jobDescription String?
+  aiOutput       Json
+  createdAt      DateTime @default(now())
 
   resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
 
