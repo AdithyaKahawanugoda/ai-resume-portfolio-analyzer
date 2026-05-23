@@ -1,0 +1,36 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Resume {
+  id        String   @id @default(cuid())
+  filename  String
+  rawText   String
+  createdAt DateTime @default(now())
+
+  analysisSessions AnalysisSession[]
+
+  @@map("resumes")
+}
+
+model AnalysisSession {
+  id        String   @id @default(cuid())
+  resumeId  String
+  jobRole   String
+  aiOutput  Json
+  createdAt DateTime @default(now())
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@map("analysis_sessions")
+}
